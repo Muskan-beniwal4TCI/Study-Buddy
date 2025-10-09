@@ -7,11 +7,13 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+// Default to requested Perplexity model; override via PPLX_MODEL in .env
+const MODEL = process.env.PPLX_MODEL || 'sonar'
 
 app.use(express.json({ limit: '1mb' }))
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true })
+  res.json({ ok: true, hasKey: Boolean(PERPLEXITY_API_KEY), model: MODEL })
 })
 
 app.post('/api/ask', async (req, res) => {
@@ -26,25 +28,28 @@ app.post('/api/ask', async (req, res) => {
     }
 
     const body = {
-      model: 'pplx-7b-chat',
+      model: MODEL,
       messages: [
-        {
-          role: 'user',
-          content: question,
-        },
+        { role: 'system', content: 'You are a helpful tutor. Explain clearly and concisely.' },
+        { role: 'user', content: question },
       ],
-      // Optional: you could include subject/grade as system hint for better answers
-      // but keeping minimal per requirements
+      temperature: 0.2,
     }
 
-    const r = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    })
+    let r
+    try {
+      r = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+      })
+    } catch (networkErr) {
+      console.error('Fetch to Perplexity failed:', networkErr)
+      return res.status(502).json({ error: `Network error to Perplexity: ${networkErr.message || 'unknown'}` })
+    }
 
     const data = await r.json().catch(() => ({}))
 
@@ -61,7 +66,8 @@ app.post('/api/ask', async (req, res) => {
     res.json({ answer })
   } catch (err) {
     console.error('Ask API error:', err)
-    res.status(500).json({ error: 'Internal server error' })
+    const message = err?.message || 'Internal server error'
+    res.status(500).json({ error: message })
   }
 })
 

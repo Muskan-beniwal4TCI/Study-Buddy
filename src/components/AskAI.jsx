@@ -23,11 +23,25 @@ export default function AskAI() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: query, subject: null, grade: null }),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data?.error || 'Failed to fetch answer')
+      // Be resilient to empty/non-JSON responses (e.g., proxy/connect errors)
+      const text = await res.text()
+      let data
+      try {
+        data = text ? JSON.parse(text) : null
+      } catch (_) {
+        data = null
       }
-      setAnswer(data?.answer || '')
+
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || text || `Request failed (${res.status})`
+        throw new Error(msg)
+      }
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Empty response from server')
+      }
+
+      setAnswer(data.answer || '')
     } catch (err) {
       setError(err.message || 'Something went wrong')
     } finally {
