@@ -7,8 +7,8 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3001
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
-// Default to requested Perplexity model; override via PPLX_MODEL in .env
-const MODEL = process.env.PPLX_MODEL || 'sonar'
+// Allow configuring the Perplexity model via PERPLEXITY_MODEL; keep older PPLX_MODEL env as fallback
+const MODEL = process.env.PERPLEXITY_MODEL || process.env.PPLX_MODEL || 'sonar'
 
 app.use(express.json({ limit: '1mb' }))
 
@@ -73,5 +73,6 @@ app.post('/api/ask', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`)
+  console.log(`Using Perplexity model: ${MODEL}`)
 })
 

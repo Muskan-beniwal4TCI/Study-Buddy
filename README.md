@@ -2,10 +2,11 @@
 
 ## Run locally
 
-1) Create a `.env` in the project root (you mentioned your key is added). Example values:
+1) Create a `.env` in the project root (you mentioned your key is added). You can copy the provided `.env.example` and fill in the key. Example values:
 
 ```
 PERPLEXITY_API_KEY=your_pplx_key_here
+PERPLEXITY_MODEL=llama-3-sonar-large-32k-online
 PORT=3001
 ```
 
